@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: news-app
+    env: node
+    buildCommand: npm install && npm install vite@5.4.14 -g && vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --external:connect-pg-simple --outdir=dist
+    startCommand: NODE_ENV=production node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: news-db
+          property: connectionString
+
+databases:
+  - name: news-db
+    plan: free
