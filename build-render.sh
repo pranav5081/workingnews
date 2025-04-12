@@ -1,69 +1,35 @@
 #!/bin/bash
 set -e
 
-echo "Starting simplified deployment build process..."
+echo "Starting production build process..."
 echo "Node version: $(node -v)"
 echo "NPM version: $(npm -v)"
 
-# Install dependencies without dev dependencies (this won't install vite)
-echo "Installing dependencies without dev dependencies..."
-npm ci --only=production
+# Install all dependencies for the build
+echo "Installing dependencies..."
+npm ci
 
-# Install only the essential build tools explicitly
-echo "Installing essential build tools..."
-npm install esbuild typescript --no-save
+# Use the production versions of the server files
+echo "Setting up production server files..."
+cp server/index.prod.ts server/index.prod-temp.ts
+cp server/vite.prod.ts server/vite.prod-temp.ts
 
-# Create simplified static HTML file
-echo "Creating simplified frontend..."
-mkdir -p dist/public
+# Build the client
+echo "Building client with Vite..."
+npx vite build
 
-cat > dist/public/index.html << 'EOL'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>News App</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    h1 { color: #2c3e50; }
-    .notice {
-      background-color: #f8f9fa;
-      border-left: 4px solid #4CAF50;
-      padding: 12px 24px;
-      margin: 24px 0;
-    }
-    a { color: #3498db; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <h1>News App API</h1>
-  <div class="notice">
-    <p>Welcome to the News App API service. The API endpoints are running and available.</p>
-    <p>To access the full app with the React frontend, please deploy with the complete build process.</p>
-  </div>
-  <div>
-    <h2>Available API Endpoints:</h2>
-    <ul>
-      <li><a href="/api/users">/api/users</a> - Get users</li>
-      <li><a href="/api/articles">/api/articles</a> - Get articles</li>
-      <li><a href="/api/articles?category=technology">/api/articles?category=technology</a> - Get articles by category</li>
-    </ul>
-  </div>
-</body>
-</html>
-EOL
+# Modify the imports in the production server file
+echo "Preparing server files for production..."
+# Replace import to use the production vite file
+sed 's/import { log } from ".\/vite.js";/import { log } from ".\/vite.prod.js";/' server/index.prod-temp.ts > server/index.for-prod.ts
 
-# Build the server only
+# Build the server with the modified files
 echo "Building server with esbuild..."
-npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --external:connect-pg-simple --outdir=dist
+npx esbuild server/index.for-prod.ts --platform=node --packages=external --bundle --format=esm --external:connect-pg-simple --outfile=dist/index.js
+npx esbuild server/vite.prod-temp.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/vite.prod.js
+
+# Clean up temp files
+echo "Cleaning up temporary files..."
+rm server/index.prod-temp.ts server/vite.prod-temp.ts server/index.for-prod.ts
 
 echo "Build completed successfully!"
