@@ -50,7 +50,10 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   res.status(500).json({ error: "Internal Server Error" });
 });
 
-server.listen(port, "0.0.0.0", () => {
-  log(`Server running at http://localhost:${port}`, "express");
-});
+ const port = 5000;
+   server.listen(port,
+  () => {
+   log(`serving on port ${port}`);
+  });
+ })();
 
