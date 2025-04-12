@@ -1,8 +1,8 @@
 services:
   - type: web
-    name: news-app
+    name: news-app-api
     env: node
-    buildCommand: npm install && npm install vite@5.4.14 -g && vite build && npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --external:connect-pg-simple --outdir=dist
+    buildCommand: ./deploy-without-vite.sh
     startCommand: NODE_ENV=production node dist/index.js
     envVars:
       - key: NODE_ENV
